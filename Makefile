@@ -3,19 +3,26 @@
 #    Makefile
 #
 # Description:
-#    Makefile for the JLAB examples.
+#    Makefile for the TIR Library using the GEFANUC Controller
 #
 #
 # $Date$
 # $Rev$
 #
 
+ifndef GEFANUC_LIB
+	GEFANUC_LIB	= $CODA/extensions/gefanuc/libs
+endif
+ifndef GEFANUC_INC
+	GEFANUC_INC	= $CODA/extensions/gefanuc/include
+endif
+
 CROSS_COMPILE		=
 CC			= $(CROSS_COMPILE)gcc
 AR                      = ar
 RANLIB                  = ranlib
-CFLAGS			= -Wall -O2 -I. -I${HOME}/include_devel -I/usr/include \
-			  -L${HOME}/lib_devel -L/usr/lib/gef -L.
+CFLAGS			= -Wall -O2 -I. -I${GEFANUC_INC} -I/usr/include \
+			  -L${GEFANUC_LIB} -L/usr/lib/gef -L.
 
 OBJS			= tirLib.o
 
@@ -28,9 +35,13 @@ libtir.a: tirLib.o
 	$(AR) ruv libtir.a tirLib.o
 	$(RANLIB) libtir.a
 
-
 clean distclean:
-	@rm -f $(OBJS) $(LIBS)
+	@rm -f $(OBJS) $(LIBS) *.so *~
+
+links: libtir.a
+	ln -sf $(PWD)/libtir.a $(GEFANUC_LIB)/libtir.a
+	ln -sf $(PWD)/libtir.so $(GEFANUC_LIB)/libtir.so
+	ln -sf $(PWD)/tirLib.h $(GEFANUC_INC)/tirLib.h
 
 %: %.c libtir.a 
 	$(CC) $(CFLAGS) -o $@ $(@:%=%.c) $(LIBS_$@) -lrt -lvme -ltir 
