@@ -543,6 +543,7 @@ tirIntDisconnect()
     break;
   case TIR_TS_POLL:
   case TIR_EXT_POLL:
+    printf("tirLib: Cancelling polling thread\n");
     pthread_cancel(tirpollthread);
     break;
   default:
