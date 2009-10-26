@@ -9,6 +9,10 @@
 # $Date$
 # $Rev$
 #
+# Uncomment DEBUG line, to include some debugging info ( -g and -Wall)
+#export DEBUG=1
+#
+
 
 ifndef GEFANUC_LIB
 	GEFANUC_LIB	= $CODA/extensions/gefanuc/libs
@@ -21,8 +25,11 @@ CROSS_COMPILE		=
 CC			= $(CROSS_COMPILE)gcc
 AR                      = ar
 RANLIB                  = ranlib
-CFLAGS			= -Wall -O2 -I. -I${GEFANUC_INC} -I/usr/include \
+CFLAGS			= -O2 -I. -I${GEFANUC_INC} -I/usr/include \
 			  -L${GEFANUC_LIB} -L/usr/lib/gef -L.
+ifdef DEBUG
+CFLAGS			+= -Wall -g
+endif
 
 OBJS			= tirLib.o
 

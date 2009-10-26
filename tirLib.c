@@ -115,7 +115,7 @@ unsigned int      tirIntMode     = 0;
 unsigned int      tirIntCount    = 0;
 unsigned int      tirSyncFlag    = 0;
 unsigned int      tirLateFail    = 0;
-int               tirDoAck       = 1;               /* Acknowledge trigger */
+int               tirDoAck       = 0;               /* Acknowledge trigger */
 pthread_mutex_t   tirMutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define TLOCK     pthread_mutex_lock(&tirMutex);
@@ -193,8 +193,9 @@ tirInt(GEF_CALLBACK_HDL  callback_hdl,
 
 
   /* Acknowledge trigger */
-  if(tirDoAck)
-    tirWrite(&tirPtr->tir_dat,0x8000);
+  if(tirDoAck==1) 
+    tirIntAck();
+  
 }
 
 
@@ -220,18 +221,24 @@ tirPoll()
   while(1) {
 
     pthread_testcancel();
-    
+
+    // If still need Ack, don't test the Trigger Status
+    if(tirNeedAck) continue;
+
     tirdata = 0;
     tirdata = tirIntPoll();
     if(tirdata == ERROR) break;
 
     if(tirdata) {
+/*       tirIntCount++; */
 
       if (tirIntRoutine != NULL)	/* call user routine */
 	(*tirIntRoutine) (tirIntArg);
 
       /* Write to TIR to Acknowledge Interrupt */
-      tirIntAck();
+      if(tirDoAck==1) 
+	tirIntAck();
+	
 
     }
 
@@ -543,13 +550,17 @@ tirIntDisconnect()
     break;
   case TIR_TS_POLL:
   case TIR_EXT_POLL:
-    printf("tirLib: Cancelling polling thread\n");
-    pthread_cancel(tirpollthread);
+    if(tirpollthread) {
+      printf("tirLib: Cancelling polling thread\n");
+      if(pthread_cancel(tirpollthread)<0) 
+	perror("pthread_cancel");
+    }
     break;
   default:
     break;
   }
   TUNLOCK;
+
   return;
 }
 
