@@ -13,6 +13,15 @@
 #define ERROR -1
 #endif
 
+pthread_mutex_t tirISR_mutex=PTHREAD_MUTEX_INITIALIZER;
+#define INTLOCK {				\
+    if(pthread_mutex_lock(&tirISR_mutex)<0)	\
+      perror("pthread_mutex_lock");		\
+}
+#define INTUNLOCK {				\
+    if(pthread_mutex_unlock(&tirISR_mutex)<0)	\
+      perror("pthread_mutex_lock");		\
+}
 
 /* Define TIR Memory structure */
 struct vme_tir {

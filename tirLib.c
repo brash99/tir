@@ -193,9 +193,9 @@ tirInt(GEF_CALLBACK_HDL  callback_hdl,
 
 
   /* Acknowledge trigger */
-  if(tirDoAck==1) 
+  if(tirDoAck==1) {
     tirIntAck();
-  
+  }
 }
 
 
@@ -215,8 +215,36 @@ void
 tirPoll()
 {
   int tirdata;
+  int policy=0;
+  struct sched_param sp;
+  cpu_set_t testCPU;
 
+  if (pthread_getaffinity_np(pthread_self(), sizeof(testCPU), &testCPU) <0) {
+    perror("pthread_getaffinity_np");
+  }
+  printf("tirPoll: CPUset = %d\n",testCPU);
+
+  CPU_ZERO(&testCPU);
+  CPU_SET(0,&testCPU); // set it to be the same as the dmaPollLib polling thread
+  if (pthread_setaffinity_np(pthread_self(),sizeof(testCPU), &testCPU) <0) {
+    perror("pthread_setaffinity_np");
+  }
+  if (pthread_getaffinity_np(pthread_self(), sizeof(testCPU), &testCPU) <0) {
+    perror("pthread_getaffinity_np");
+  }
+  printf("tirPoll: CPUset = %d\n",testCPU);
+
+  policy=SCHED_RR;
+  sp.sched_priority=50;
   printf("tirPoll: Entering polling loop...\n");
+  pthread_setschedparam(pthread_self(),policy,&sp);
+  pthread_getschedparam(pthread_self(),&policy,&sp);
+  printf ("tirPoll: INFO: Running at %s/%d\n",
+	  (policy == SCHED_FIFO ? "FIFO"
+	   : (policy == SCHED_RR ? "RR"
+	      : (policy == SCHED_OTHER ? "OTHER"
+		 : "unknown"))), sp.sched_priority);  
+
 
   while(1) {
 
