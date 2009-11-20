@@ -4,6 +4,9 @@
  *
  *************************************************************/
 
+#ifndef __TIRLIB__
+#define __TIRLIB__
+
 #ifdef VXWORKS
 #define GEF_VME_BUS_HDL  unsigned int
 #else
@@ -14,10 +17,12 @@
 #endif
 
 pthread_mutex_t tirISR_mutex=PTHREAD_MUTEX_INITIALIZER;
+
 #define INTLOCK {				\
     if(pthread_mutex_lock(&tirISR_mutex)<0)	\
       perror("pthread_mutex_lock");		\
 }
+
 #define INTUNLOCK {				\
     if(pthread_mutex_unlock(&tirISR_mutex)<0)	\
       perror("pthread_mutex_lock");		\
@@ -88,3 +93,4 @@ void   tirWriteCsr(unsigned short val);
 int   tirIntStatus(int pflag);
 
 
+#endif

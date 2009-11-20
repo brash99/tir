@@ -188,6 +188,8 @@ tirInt(GEF_CALLBACK_HDL  callback_hdl,
 {
   tirIntCount++;
   
+  INTLOCK;
+
   if (tirIntRoutine != NULL)	/* call user routine */
     (*tirIntRoutine) (tirIntArg);
 
@@ -196,6 +198,7 @@ tirInt(GEF_CALLBACK_HDL  callback_hdl,
   if(tirDoAck==1) {
     tirIntAck();
   }
+  INTUNLOCK;
 }
 
 
@@ -258,7 +261,7 @@ tirPoll()
     if(tirdata == ERROR) break;
 
     if(tirdata) {
-/*       tirIntCount++; */
+      INTLOCK;
 
       if (tirIntRoutine != NULL)	/* call user routine */
 	(*tirIntRoutine) (tirIntArg);
@@ -267,7 +270,7 @@ tirPoll()
       if(tirDoAck==1) 
 	tirIntAck();
 	
-
+      INTUNLOCK;
     }
 
   }
