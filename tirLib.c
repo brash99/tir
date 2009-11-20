@@ -68,7 +68,6 @@ extern  int intDisconnect(int);
 extern  int sysIntEnable(int);
 #else
 extern void *a16_window;
-extern GEF_VME_BUS_HDL vmeHdl; // vmeCreateMasterWindow.h
 
 int 
 intLock()
@@ -457,20 +456,16 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 */
 
 int 
-tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg, GEF_VME_BUS_HDL hdl)
+tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
 {
 
 #ifndef VXWORKS
   GEF_STATUS status;
   unsigned int cb_arg = arg;
 
-  if(hdl == NULL) { 
-    if(vmeHdl == NULL) { // also check if the external hdl is defined
-      printf("tirIntConnect: ERROR: NULL VME bus handle\n");
-      return(ERROR);
-    } else {
-      hdl = vmeHdl;
-    }
+  if(vmeHdl == NULL) { // check if the gef VME hdl is defined
+    printf("tirIntConnect: ERROR: NULL VME bus handle\n");
+    return(ERROR);
   }
 #endif
 
@@ -515,7 +510,7 @@ tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg, GEF_
 #ifdef VXWORKS
        intConnect(INUM_TO_IVEC(tirIntVec),tirInt,arg);
 #else
-       status = gefVmeAttachCallback (hdl, tirIntLevel, tirIntVec, 
+       status = gefVmeAttachCallback (vmeHdl, tirIntLevel, tirIntVec, 
 				      tirInt,(void *)&cb_arg, &cb_hdl);
        if (status != GEF_SUCCESS) {
 	 printf("gefVmeAttachCallback failed: code 0x%08x\n",status);

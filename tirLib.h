@@ -71,7 +71,7 @@ struct vme_tir {
 /* Define Functions prototypes */
 BOOL tirIntIsRunning();
 int    tirIntInit(unsigned int tAddr, unsigned int mode, int force);
-int    tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg, GEF_VME_BUS_HDL hdl);
+int    tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg);
 void   tirIntDisconnect();
 int    tirIntEnable(int iflag);
 void   tirIntDisable();
