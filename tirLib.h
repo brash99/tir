@@ -1,8 +1,26 @@
-/*************************************************************
+/*----------------------------------------------------------------------------*
+ *  Copyright (c) 2009        Southeastern Universities Research Association, *
+ *                            Thomas Jefferson National Accelerator Facility  *
+ *                                                                            *
+ *    This software was developed under a United States Government license    *
+ *    described in the NOTICE file included as part of this distribution.     *
+ *                                                                            *
+ *    Authors: David Abbott                                                   *
+ *             abbottd@jlab.org                  Jefferson Lab, MS-12B3       *
+ *             Phone: (757) 269-7190             12000 Jefferson Ave.         *
+ *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *                                                                            *
+ *             Bryan Moffit                                                   *
+ *             moffit@jlab.org                   Jefferson Lab, MS-12B3       *
+ *             Phone: (757) 269-5660             12000 Jefferson Ave.         *
+ *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *                                                                            *
+ *----------------------------------------------------------------------------*
  *
- *  tirLib.h - TJNAF VME Trigger Interface Library Header
+ * Description:
+ *     Header file for the TJNAF VME Trigger Interface Library
  *
- *************************************************************/
+ *----------------------------------------------------------------------------*/
 
 #ifndef __TIRLIB__
 #define __TIRLIB__
@@ -14,6 +32,7 @@
 #define FALSE 0
 #define OK    0
 #define ERROR -1
+#include <pthread.h>
 #endif
 
 pthread_mutex_t tirISR_mutex=PTHREAD_MUTEX_INITIALIZER;

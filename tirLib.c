@@ -1,31 +1,27 @@
 /*----------------------------------------------------------------------------*
- *  Copyright (c) 1991, 1992  Southeastern Universities Research Association, *
- *                            Continuous Electron Beam Accelerator Facility   *
+ *  Copyright (c) 2009        Southeastern Universities Research Association, *
+ *                            Thomas Jefferson National Accelerator Facility  *
  *                                                                            *
  *    This software was developed under a United States Government license    *
  *    described in the NOTICE file included as part of this distribution.     *
  *                                                                            *
- * TJNAF Data Acquisition Group, 12000 Jefferson Ave., Newport News, VA 23606 *
- *       heyes@cebaf.gov   Tel: (804) 249-7030    Fax: (804) 249-7363         *
+ *    Authors: David Abbott                                                   *
+ *             abbottd@jlab.org                  Jefferson Lab, MS-12B3       *
+ *             Phone: (757) 269-7190             12000 Jefferson Ave.         *
+ *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *                                                                            *
+ *             Bryan Moffit                                                   *
+ *             moffit@jlab.org                   Jefferson Lab, MS-12B3       *
+ *             Phone: (757) 269-5660             12000 Jefferson Ave.         *
+ *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *                                                                            *
  *----------------------------------------------------------------------------*
- * Description: follows this header.
  *
- * Author:
- *	David Abbott
- *	TJNAF Data Acquisition Group
- *
- * Revision History:
- *	  Initial revision
- *
+ * Description:
+ *     Primitive trigger control for VME CPUs using the TJNAF Trigger
+ *     Supervisor interface card
  *
  *----------------------------------------------------------------------------*/
-
- /* tirLib.c -- Primitive trigger control for VME CPUs using the TJNAF 
-               Trigger Supervisor interface card
-
- File : tirLib.c
-
-------------------------------------------------------------------------------*/
 
 #define _GNU_SOURCE
 
@@ -38,7 +34,6 @@
 #endif
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
 
 #ifdef VXWORKS
 #include <logLib.h>
@@ -252,6 +247,7 @@ tirPoll()
 
     pthread_testcancel();
 
+
     // If still need Ack, don't test the Trigger Status
     if(tirNeedAck) continue;
 
@@ -356,6 +352,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 /*   int stat = 0; */
   unsigned int laddr;
   unsigned short rval;
+  int stat;
 
   if (tAddr == 0) {
     tAddr = TIR_DEFAULT_ADDR;
@@ -383,17 +380,14 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
   /* Check if TIR board is readable */
 #ifdef VXWORKS
   stat = vxMemProbe((char *)laddr,0,2,(char *)&rval);
+#else
+  stat = jlabgefCheckAddress((char *)laddr);
+  if (stat != 0) rval = tirRead((unsigned short *)laddr);
+#endif
   if (stat != 0) {
     printf("tirInit: ERROR: TIR card not addressable\n");
     return(-1);
   }
-#else
-  rval = tirRead((unsigned short *)laddr);
-  if (rval == 0xffff) {
-    printf("tirIntInit: ERROR: TIR card not addressable\n");
-    return(-1);
-  }
-#endif
 
   if(force == 0) { /* Check if the TIR is active */
     if(rval&TIR_ENABLED) {
@@ -544,6 +538,7 @@ tirIntDisconnect()
   GEF_STATUS status;
 #endif
 
+
   if(tirPtr == NULL) {
     printf("tirIntDisconnect: ERROR: TIR not initialized\n");
     return;
@@ -553,6 +548,8 @@ tirIntDisconnect()
     printf("tirIntDisconnect: ERROR: TIR is Enabled - Call tirIntDisable() first\n");
     return;
   }
+
+  INTLOCK;
 
   /* Reset TIR */
   TLOCK;
@@ -586,6 +583,10 @@ tirIntDisconnect()
     break;
   }
   TUNLOCK;
+
+  INTUNLOCK;
+
+  printf("tirIntDisconnect: Disconnected\n");
 
   return;
 }
