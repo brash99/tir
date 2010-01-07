@@ -441,10 +441,11 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 
 /*******************************************************************************
 *
-* tirIntConnect - connect a user routine to the TIR interrupt
+* tirIntConnect - connect a user routine to the TIR interrupt or
+*                 latched trigger, if polling
 *
 * This routine specifies the user interrupt routine to be called at each
-* interrupt
+* interrupt or latched trigger (if using polling).
 *
 * RETURNS: OK, or ERROR .
 */
