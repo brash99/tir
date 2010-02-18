@@ -124,7 +124,7 @@ pthread_t tirpollthread;
 
 /* Register Read/Write routines */
 static unsigned short
-tirRead(unsigned short *addr)
+tirRead(volatile unsigned short *addr)
 {
   unsigned short rval;
 
@@ -139,7 +139,7 @@ tirRead(unsigned short *addr)
 }
 
 static void
-tirWrite(unsigned short *addr, unsigned short val)
+tirWrite(volatile unsigned short *addr, unsigned short val)
 {
 
 #ifndef VXWORKS

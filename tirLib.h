@@ -49,11 +49,11 @@ pthread_mutex_t tirISR_mutex=PTHREAD_MUTEX_INITIALIZER;
 
 /* Define TIR Memory structure */
 struct vme_tir {
-    unsigned short tir_csr;
-    unsigned short tir_vec;
-    unsigned short tir_dat;
-    unsigned short tir_oport;
-    unsigned short tir_iport;
+    volatile unsigned short tir_csr;
+    volatile unsigned short tir_vec;
+    volatile unsigned short tir_dat;
+    volatile unsigned short tir_oport;
+    volatile unsigned short tir_iport;
   };
 
 
