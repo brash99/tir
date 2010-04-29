@@ -31,6 +31,7 @@
 #else
 #include <stdlib.h>
 #include <stdarg.h>
+#include <sched.h>
 #endif
 #include <stdio.h>
 #include <string.h>
@@ -101,7 +102,7 @@ static int          tirIntArg      = 0;	              /* arg to user routine */
 static unsigned int tirIntLevel    = 0;               /* VME Interrupt Level 1-7 */
 static unsigned int tirIntVec      = TIR_INT_VEC;     /* default interrupt Vector */
 #ifndef VXWORKS
-static GEF_CALLBACK_HDL cb_hdl;
+static GEF_CALLBACK_HDL cb_hdl=0;
 #endif
 
 /* Globals */
@@ -222,7 +223,7 @@ tirPoll()
   printf("tirPoll: CPUset = %d\n",testCPU);
 
   CPU_ZERO(&testCPU);
-  CPU_SET(0,&testCPU); // set it to be the same as the dmaPollLib polling thread
+  CPU_SET(2,&testCPU); // set it to be the same as the dmaPollLib polling thread
   if (pthread_setaffinity_np(pthread_self(),sizeof(testCPU), &testCPU) <0) {
     perror("pthread_setaffinity_np");
   }
@@ -231,8 +232,9 @@ tirPoll()
   }
   printf("tirPoll: CPUset = %d\n",testCPU);
 
-  policy=SCHED_RR;
-  sp.sched_priority=50;
+  /* policy=SCHED_OTHER; */
+  policy=SCHED_FIFO;
+  sp.sched_priority=40;
   printf("tirPoll: Entering polling loop...\n");
   pthread_setschedparam(pthread_self(),policy,&sp);
   pthread_getschedparam(pthread_self(),&policy,&sp);
@@ -382,7 +384,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
   stat = vxMemProbe((char *)laddr,0,2,(char *)&rval);
 #else
   stat = jlabgefCheckAddress((char *)laddr);
-  if (stat != 0) rval = tirRead((unsigned short *)laddr);
+  if (stat == 0) rval = tirRead((unsigned short *)laddr);
 #endif
   if (stat != 0) {
     printf("tirInit: ERROR: TIR card not addressable\n");
@@ -509,6 +511,10 @@ tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
 				      tirInt,(void *)&cb_arg, &cb_hdl);
        if (status != GEF_SUCCESS) {
 	 printf("gefVmeAttachCallback failed: code 0x%08x\n",status);
+	 if((status&0xffff) == GEF_STATUS_EVENT_IN_USE)
+	   printf("ERROR: gefvme module must be reloaded\n");
+	 TUNLOCK;
+	 return(ERROR);
        }
 #endif  
 
@@ -566,10 +572,15 @@ tirIntDisconnect()
     if((intDisconnect(tirIntVec) !=0))
       printf("tirIntConnect: Error disconnecting Interrupt\n");
 #else
-    status = gefVmeReleaseCallback(cb_hdl);
-    if (status != GEF_SUCCESS) {
-      printf("gefVmeReleaseCallback failed: code 0x%08x\n",status);
-    }
+    if(cb_hdl!=0) 
+      {
+	status = gefVmeReleaseCallback(cb_hdl);
+	if (status != GEF_SUCCESS) {
+	  printf("gefVmeReleaseCallback failed: code 0x%08x\n",status);
+	} else {
+	  cb_hdl = 0;
+	}
+      }
 #endif
     break;
   case TIR_TS_POLL:
