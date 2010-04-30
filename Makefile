@@ -3,7 +3,7 @@
 #    Makefile
 #
 # Description:
-#    Makefile for the TIR Library using the GEFANUC Controller
+#    Makefile for the TIR Library using a VME Controller running Linux
 #
 #
 # $Date$
@@ -14,19 +14,19 @@
 #
 
 
-ifndef GEFANUC_LIB
-	GEFANUC_LIB	= $CODA/extensions/gefanuc/libs
+ifndef LINUXVME_LIB
+	LINUXVME_LIB	= $CODA/extensions/linuxvme/libs
 endif
-ifndef GEFANUC_INC
-	GEFANUC_INC	= $CODA/extensions/gefanuc/include
+ifndef LINUXVME_INC
+	LINUXVME_INC	= $CODA/extensions/linuxvme/include
 endif
 
 CROSS_COMPILE		=
 CC			= $(CROSS_COMPILE)gcc
 AR                      = ar
 RANLIB                  = ranlib
-CFLAGS			= -O2 -I. -I${GEFANUC_INC} -I/usr/include \
-			  -L${GEFANUC_LIB} -L/usr/lib/gef -L.
+CFLAGS			= -O2 -I. -I${LINUXVME_INC} -I/usr/include \
+			  -L${LINUXVME_LIB} -L.
 ifdef DEBUG
 CFLAGS			+= -Wall -g
 endif
@@ -46,11 +46,11 @@ clean distclean:
 	@rm -f $(OBJS) $(LIBS) *.so *~
 
 links: libtir.a
-	ln -sf $(PWD)/libtir.a $(GEFANUC_LIB)/libtir.a
-	ln -sf $(PWD)/libtir.so $(GEFANUC_LIB)/libtir.so
-	ln -sf $(PWD)/tirLib.h $(GEFANUC_INC)/tirLib.h
+	ln -sf $(PWD)/libtir.a $(LINUXVME_LIB)/libtir.a
+	ln -sf $(PWD)/libtir.so $(LINUXVME_LIB)/libtir.so
+	ln -sf $(PWD)/tirLib.h $(LINUXVME_INC)/tirLib.h
 
 %: %.c libtir.a 
-	$(CC) $(CFLAGS) -o $@ $(@:%=%.c) $(LIBS_$@) -lrt -lvme -ltir 
+	$(CC) $(CFLAGS) -o $@ $(@:%=%.c) -lrt -ljvme -ltir 
 
 .PHONY: all clean distclean

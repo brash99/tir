@@ -25,15 +25,7 @@
 #ifndef __TIRLIB__
 #define __TIRLIB__
 
-#ifdef VXWORKS
-#define GEF_VME_BUS_HDL  unsigned int
-#else
-#define TRUE  1
-#define FALSE 0
-#define OK    0
-#define ERROR -1
 #include <pthread.h>
-#endif
 
 pthread_mutex_t tirISR_mutex=PTHREAD_MUTEX_INITIALIZER;
 

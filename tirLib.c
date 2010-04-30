@@ -42,8 +42,7 @@
 #include <intLib.h>
 #include <iv.h>
 #else
-#include "gef/gefcmn_vme.h"
-#include "jlabgef.h"
+#include "jvme.h"
 #endif
 
 #include "tirLib.h"
@@ -63,7 +62,6 @@ extern  int sysBusToLocalAdrs(int, char *, char **);
 extern  int intDisconnect(int);
 extern  int sysIntEnable(int);
 #else
-extern void *a16_window;
 
 int 
 intLock()
@@ -101,9 +99,6 @@ static VOIDFUNCPTR  tirIntRoutine  = NULL;	      /* user interrupt service routi
 static int          tirIntArg      = 0;	              /* arg to user routine */
 static unsigned int tirIntLevel    = 0;               /* VME Interrupt Level 1-7 */
 static unsigned int tirIntVec      = TIR_INT_VEC;     /* default interrupt Vector */
-#ifndef VXWORKS
-static GEF_CALLBACK_HDL cb_hdl=0;
-#endif
 
 /* Globals */
 unsigned int      tirIntMode     = 0;
@@ -171,15 +166,8 @@ tirIntIsRunning()
 * SEE ALSO: tirIntConnect()
 */
 
-#ifdef VXWORKS
 static void 
 tirInt (void)
-#else
-static void
-tirInt(GEF_CALLBACK_HDL  callback_hdl,
-       GEF_VME_INT_INFO  int_info, 
-       void *arg) 
-#endif
 {
   tirIntCount++;
   
@@ -371,19 +359,19 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
      printf("TIR address = 0x%x\n",laddr);
   }
 #else
-  if(a16_window==NULL) {
-    printf("tirInit: ERROR: A16 Window is not accessable\n");
-    return(-1);
+  stat = vmeBusToLocalAdrs(0x29,(char *)tAddr,(char **)&laddr);
+  if (stat != 0) {
+     printf("tirInit: ERROR: Error in vmeBusToLocalAdrs res=%d \n",stat);
+  } else {
+    printf("TIR VME (USER) address = 0x%.8x (0x%.8x)\n",tAddr,laddr);
   }
-  laddr = (int)a16_window + tAddr;
-  printf("TIR VME (USER) address = 0x%.8x (0x%.8x)\n",tAddr,laddr);
 #endif
 
   /* Check if TIR board is readable */
 #ifdef VXWORKS
   stat = vxMemProbe((char *)laddr,0,2,(char *)&rval);
 #else
-  stat = jlabgefCheckAddress((char *)laddr);
+  stat = vmeCheckAddress((char *)laddr);
   if (stat == 0) rval = tirRead((unsigned short *)laddr);
 #endif
   if (stat != 0) {
@@ -457,13 +445,7 @@ tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
 {
 
 #ifndef VXWORKS
-  GEF_STATUS status;
-  unsigned int cb_arg = arg;
-
-  if(vmeHdl == NULL) { // check if the gef VME hdl is defined
-    printf("tirIntConnect: ERROR: NULL VME bus handle\n");
-    return(ERROR);
-  }
+  int status;
 #endif
 
   if(tirPtr == NULL) {
@@ -507,12 +489,10 @@ tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
 #ifdef VXWORKS
        intConnect(INUM_TO_IVEC(tirIntVec),tirInt,arg);
 #else
-       status = gefVmeAttachCallback (vmeHdl, tirIntLevel, tirIntVec, 
-				      tirInt,(void *)&cb_arg, &cb_hdl);
-       if (status != GEF_SUCCESS) {
-	 printf("gefVmeAttachCallback failed: code 0x%08x\n",status);
-	 if((status&0xffff) == GEF_STATUS_EVENT_IN_USE)
-	   printf("ERROR: gefvme module must be reloaded\n");
+       status = vmeIntConnect (tirIntVec, tirIntLevel,
+				      tirInt,arg);
+       if (status != OK) {
+	 printf("vmeIntConnect failed\n");
 	 TUNLOCK;
 	 return(ERROR);
        }
@@ -542,7 +522,7 @@ void
 tirIntDisconnect()
 {
 #ifndef VXWORKS
-  GEF_STATUS status;
+  int status;
 #endif
 
 
@@ -572,15 +552,10 @@ tirIntDisconnect()
     if((intDisconnect(tirIntVec) !=0))
       printf("tirIntConnect: Error disconnecting Interrupt\n");
 #else
-    if(cb_hdl!=0) 
-      {
-	status = gefVmeReleaseCallback(cb_hdl);
-	if (status != GEF_SUCCESS) {
-	  printf("gefVmeReleaseCallback failed: code 0x%08x\n",status);
-	} else {
-	  cb_hdl = 0;
-	}
-      }
+    status = vmeIntDisconnect(tirIntLevel);
+    if (status != OK) {
+      printf("vmeIntDisconnect failed\n");
+    }
 #endif
     break;
   case TIR_TS_POLL:
@@ -902,12 +877,7 @@ tirIntStatus(int pflag)
   if(pflag == 1) {
     /* print out status info */
     
-#ifdef VXWORKS
     printf("STATUS for TIR at base address 0x%x \n",(unsigned int) tirPtr);
-#else
-    printf("STATUS for TIR at VME (USER) base address 0x%.8x (0x%.8x) \n",
-	   (int) tirPtr - (int)a16_window, (unsigned int) tirPtr);
-#endif
     printf("----------------------------------------- \n");
     printf("Trigger Count: %d\n",tirIntCount);
     printf("Registers: \n");
