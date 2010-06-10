@@ -82,18 +82,6 @@ sysIntEnable(int arg)
 }
 #endif
 
-
-/* define some Macros for byte swapping */
-#define LSWAP(x)        ((((x) & 0x000000ff) << 24) | \
-                         (((x) & 0x0000ff00) <<  8) | \
-                         (((x) & 0x00ff0000) >>  8) | \
-                         (((x) & 0xff000000) >> 24))
-
-#define SSWAP(x)        ((((x) & 0x00ff) << 8) | \
-                         (((x) & 0xff00) >> 8))
-
-
-
 static BOOL         tirIntRunning  = FALSE;	      /* running flag */
 static VOIDFUNCPTR  tirIntRoutine  = NULL;	      /* user interrupt service routine */
 static int          tirIntArg      = 0;	              /* arg to user routine */
@@ -176,7 +164,6 @@ tirInt (void)
   if (tirIntRoutine != NULL)	/* call user routine */
     (*tirIntRoutine) (tirIntArg);
 
-
   /* Acknowledge trigger */
   if(tirDoAck==1) {
     tirIntAck();
@@ -242,6 +229,7 @@ tirPoll()
     if(tirNeedAck) continue;
 
     tirdata = 0;
+	  
     tirdata = tirIntPoll();
     if(tirdata == ERROR) break;
 
@@ -253,8 +241,9 @@ tirPoll()
 
       /* Write to TIR to Acknowledge Interrupt */
       if(tirDoAck==1) 
-	tirIntAck();
-	
+	{
+	  tirIntAck();
+	}
       INTUNLOCK;
     }
 
@@ -371,8 +360,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 #ifdef VXWORKS
   stat = vxMemProbe((char *)laddr,0,2,(char *)&rval);
 #else
-  stat = vmeCheckAddress((char *)laddr);
-  if (stat == 0) rval = tirRead((unsigned short *)laddr);
+  stat = vmeMemProbe((char *)laddr,2,(char **)&rval);
 #endif
   if (stat != 0) {
     printf("tirInit: ERROR: TIR card not addressable\n");

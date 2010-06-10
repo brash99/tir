@@ -10,7 +10,7 @@
 # $Rev$
 #
 # Uncomment DEBUG line, to include some debugging info ( -g and -Wall)
-#export DEBUG=1
+export DEBUG=1
 #
 
 
@@ -50,7 +50,7 @@ links: libtir.a
 	ln -sf $(PWD)/libtir.so $(LINUXVME_LIB)/libtir.so
 	ln -sf $(PWD)/tirLib.h $(LINUXVME_INC)/tirLib.h
 
-%: %.c libtir.a 
-	$(CC) $(CFLAGS) -o $@ $(@:%=%.c) -lrt -ljvme -ltir 
+%.o: %.c 
+	$(CC) $(CFLAGS) -c $<
 
 .PHONY: all clean distclean
