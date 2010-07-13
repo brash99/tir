@@ -190,6 +190,7 @@ tirPoll()
   int tirdata;
   int policy=0;
   struct sched_param sp;
+#ifdef DO_CPUAFFINITY
   cpu_set_t testCPU;
 
   if (pthread_getaffinity_np(pthread_self(), sizeof(testCPU), &testCPU) <0) {
@@ -206,6 +207,7 @@ tirPoll()
     perror("pthread_getaffinity_np");
   }
   printf("tirPoll: CPUset = %d\n",testCPU);
+#endif
 
   /* policy=SCHED_OTHER; */
   policy=SCHED_FIFO;
@@ -222,16 +224,18 @@ tirPoll()
 
   while(1) {
 
-    pthread_testcancel();
-
-
     // If still need Ack, don't test the Trigger Status
     if(tirNeedAck) continue;
 
     tirdata = 0;
 	  
     tirdata = tirIntPoll();
-    if(tirdata == ERROR) break;
+    if(tirdata == ERROR) 
+      {
+	printf("%s: ERROR: tirIntPoll returned ERROR.\n",__FUNCTION__);
+	break;
+      }
+
 
     if(tirdata) {
       INTLOCK;
@@ -246,6 +250,8 @@ tirPoll()
 	}
       INTUNLOCK;
     }
+    
+    pthread_testcancel();
 
   }
   printf("tirPoll: Read Error: Exiting Thread\n");
@@ -256,7 +262,9 @@ void
 startTirPollThread()
 {
   int ptir_status;							
+#ifdef DO_CPUAFFINITY
   cpu_set_t pollCPU;							
+#endif
   
   ptir_status = pthread_create(&tirpollthread,			
 			       NULL,					
@@ -267,8 +275,9 @@ startTirPollThread()
     printf("\t ... returned: %d\n",ptir_status);			
   }									
 
-  CPU_ZERO(&pollCPU);							
-  CPU_SET(2,&pollCPU);						
+#ifdef DO_CPUAFFINITY
+  CPU_ZERO(&pollCPU);
+  CPU_SET(2,&pollCPU);
   if (pthread_setaffinity_np(tirpollthread,sizeof(pollCPU), &pollCPU) <0) { 
     perror("pthread_setaffinity_np");					
   }									
@@ -276,6 +285,7 @@ startTirPollThread()
     perror("pthread_getaffinity_np");					
   }									
   printf("startTirPollThread: CPUset = %d\n",pollCPU);			
+#endif
  
 }
 
@@ -512,6 +522,7 @@ tirIntDisconnect()
 #ifndef VXWORKS
   int status;
 #endif
+  void *res;
 
 
   if(tirPtr == NULL) {
@@ -529,6 +540,7 @@ tirIntDisconnect()
   /* Reset TIR */
   TLOCK;
   tirWrite(&tirPtr->tir_csr,0x80);
+  TUNLOCK;
 
   switch (tirIntMode) {
   case TIR_TS_INT:
@@ -549,15 +561,20 @@ tirIntDisconnect()
   case TIR_TS_POLL:
   case TIR_EXT_POLL:
     if(tirpollthread) {
-      printf("tirLib: Cancelling polling thread\n");
       if(pthread_cancel(tirpollthread)<0) 
 	perror("pthread_cancel");
+      if(pthread_join(tirpollthread,&res)<0)
+	perror("pthread_join");
+      if (res == PTHREAD_CANCELED)
+	printf("%s: Polling thread canceled\n",__FUNCTION__);
+      else
+	printf("%s: ERROR: Polling thread NOT canceled\n",__FUNCTION__);
+
     }
     break;
   default:
     break;
   }
-  TUNLOCK;
 
   INTUNLOCK;
 

@@ -10,7 +10,7 @@
 # $Rev$
 #
 # Uncomment DEBUG line, to include some debugging info ( -g and -Wall)
-export DEBUG=1
+#export DEBUG=1
 #
 
 
