@@ -65,14 +65,17 @@ struct vme_tir {
 
 #define TIR_CLEAR_COUNT  1
 
-#define TIR_EXTERNAL       0x1
-#define TIR_ENABLED        0x2
-#define TIR_INTERRUPT      0x4
-#define TIR_TEST_MODE      0x8
-#define TIR_LEVEL_MASK   0x700
-#define TIR_INT_PENDING 0x4000
-#define TIR_TRIG_STATUS 0x8000
-
+/* csr - CSR register bits/masks */
+#define TIR_EXTERNAL          0x1
+#define TIR_ENABLED           0x2
+#define TIR_INTERRUPT         0x4
+#define TIR_TEST_MODE         0x8
+#define TIR_LEVEL_MASK      0x700
+#define TIR_INT_PENDING    0x4000
+#define TIR_TRIG_STATUS    0x8000
+/* dat - Data register bits */
+#define TIR_TEST_INTERRUPT 0x4000
+#define TIR_ACK_TRIGGER    0x8000
 
 /* Define default Interrupt vector and address for possible sources */
 #define TIR_DEFAULT_ADDR 0x0ed0
@@ -80,12 +83,13 @@ struct vme_tir {
 
 
 /* Define Functions prototypes */
-BOOL tirIntIsRunning();
+BOOL   tirIntIsRunning();
 int    tirIntInit(unsigned int tAddr, unsigned int mode, int force);
 int    tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg);
 void   tirIntDisconnect();
 int    tirIntEnable(int iflag);
 void   tirIntDisable();
+int    tirIntAckConnect(VOIDFUNCPTR routine, unsigned int arg);
 void   tirIntAck();
 void   tirIntPause();
 void   tirIntResume();
@@ -101,7 +105,8 @@ unsigned short tirReadData();
 unsigned short tirReadOutput();
 unsigned short tirReadInput();
 void   tirWriteCsr(unsigned short val);
-int   tirIntStatus(int pflag);
+void   tirWriteData(unsigned short val);
+int    tirIntStatus(int pflag);
 
 
 #endif

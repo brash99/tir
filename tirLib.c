@@ -88,6 +88,9 @@ static int          tirIntArg      = 0;	              /* arg to user routine */
 static unsigned int tirIntLevel    = 0;               /* VME Interrupt Level 1-7 */
 static unsigned int tirIntVec      = TIR_INT_VEC;     /* default interrupt Vector */
 
+static VOIDFUNCPTR  tirAckRoutine  = NULL;            /* user trigger acknowledge routine */
+static int          tirAckArg      = 0;               /* arg to user trigger ack routine */
+
 /* Globals */
 unsigned int      tirIntMode     = 0;
 unsigned int      tirIntCount    = 0;
@@ -189,6 +192,7 @@ tirPoll()
 {
   int tirdata;
   int policy=0;
+  int emptyPoll=0;
   struct sched_param sp;
 #ifdef DO_CPUAFFINITY
   cpu_set_t testCPU;
@@ -237,19 +241,30 @@ tirPoll()
       }
 
 
-    if(tirdata) {
-      INTLOCK;
-
-      if (tirIntRoutine != NULL)	/* call user routine */
-	(*tirIntRoutine) (tirIntArg);
-
-      /* Write to TIR to Acknowledge Interrupt */
-      if(tirDoAck==1) 
-	{
-	  tirIntAck();
-	}
-      INTUNLOCK;
-    }
+    if(tirdata) 
+      {
+	INTLOCK;
+	
+	if (tirIntRoutine != NULL)	/* call user routine */
+	  (*tirIntRoutine) (tirIntArg);
+	
+	/* Write to TIR to Acknowledge Interrupt */
+	if(tirDoAck==1) 
+	  {
+	    tirIntAck();
+	  }
+	INTUNLOCK;
+	emptyPoll=0;
+      }
+    else
+      {
+	emptyPoll++;
+	if(emptyPoll%1000000==0)
+	  {
+	    printf("No triggers in %d polling loops\n",emptyPoll);
+	    printf(" tirNeedAck = %d   tirDoAck = %d\n",tirNeedAck,tirDoAck);
+	  }
+      }
     
     pthread_testcancel();
 
@@ -349,7 +364,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 
   tirIntCount = 0;
   tirDoAck = 1;
-
+  
 #ifdef VXWORKS
   stat = sysBusToLocalAdrs(0x29,(char *)tAddr,(char **)&laddr);
   if (stat != 0) {
@@ -370,7 +385,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 #ifdef VXWORKS
   stat = vxMemProbe((char *)laddr,0,2,(char *)&rval);
 #else
-  stat = vmeMemProbe((char *)laddr,2,(char **)&rval);
+  stat = vmeMemProbe((char *)laddr,2,(char *)&rval);
 #endif
   if (stat != 0) {
     printf("tirInit: ERROR: TIR card not addressable\n");
@@ -383,8 +398,10 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
       return(-1);
     }
   }
+
   /* Set Up pointer */
   tirPtr = (struct vme_tir *)laddr;
+
   tirIntRunning = 0;
   tirWrite(&tirPtr->tir_csr,0x80); /* Reset the board */
   rval = tirRead(&tirPtr->tir_csr)&TIR_VERSION_MASK;
@@ -678,6 +695,24 @@ tirIntReset()
 
 }
 
+int
+tirIntAckConnect(VOIDFUNCPTR routine, unsigned int arg)
+{
+  if(routine)
+    {
+      tirAckRoutine = routine;
+      tirAckArg = arg;
+    }
+  else
+    {
+      printf("%s: WARN: routine undefined.\n",__FUNCTION__);
+      tirIntRoutine = NULL;
+      tirIntArg = 0;
+      return ERROR;
+    }
+  return OK;
+}
+
 void 
 tirIntAck()
 {
@@ -685,12 +720,22 @@ tirIntAck()
     logMsg("tirIntAck: ERROR: TIR not initialized\n",0,0,0,0,0,0);
     return;
   }
-  
-  TLOCK;
-  tirNeedAck = 0;
-  tirDoAck = 1;
-  tirWrite(&tirPtr->tir_dat,0x8000);
-  TUNLOCK;
+
+  if (tirAckRoutine != NULL)
+    {
+      /* Execute user defined Acknowlege, if it was defined */
+      TLOCK;
+      (*tirAckRoutine) (tirAckArg);
+      TUNLOCK;
+    }
+  else
+    {
+      TLOCK;
+      tirNeedAck = 0;
+      tirDoAck = 1;
+      tirWrite(&tirPtr->tir_dat,0x8000);
+      TUNLOCK;
+    }
 }
 
 void
@@ -848,7 +893,16 @@ tirWriteCsr(unsigned short val)
   tirPtr->tir_csr = val;
   return;
 }
-
+void
+tirWriteData(unsigned short val)
+{
+  /* Mask the write-only bits */
+  val &= (TIR_TEST_INTERRUPT | TIR_ACK_TRIGGER);
+#ifndef VXWORKS
+  val = SSWAP(val);
+#endif
+  tirPtr->tir_dat = val;
+}
 
 
 int
