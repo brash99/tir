@@ -36,7 +36,7 @@ pthread_mutex_t tirISR_mutex=PTHREAD_MUTEX_INITIALIZER;
 
 #define INTUNLOCK {				\
     if(pthread_mutex_unlock(&tirISR_mutex)<0)	\
-      perror("pthread_mutex_lock");		\
+      perror("pthread_mutex_unlock");		\
 }
 
 /* Define TIR Memory structure */

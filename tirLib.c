@@ -99,8 +99,8 @@ unsigned int      tirLateFail    = 0;
 int               tirDoAck       = 0;               /* Acknowledge trigger */
 pthread_mutex_t   tirMutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define TLOCK     pthread_mutex_lock(&tirMutex);
-#define TUNLOCK   pthread_mutex_unlock(&tirMutex);
+#define TLOCK     if(pthread_mutex_lock(&tirMutex)<0) perror("pthread_mutex_lock");
+#define TUNLOCK   if(pthread_mutex_unlock(&tirMutex)<0) perror("pthread_mutex_unlock");
 
 // Routine to start up the TIR polling thread
 void startTirPollThread();
@@ -192,7 +192,6 @@ tirPoll()
 {
   int tirdata;
   int policy=0;
-  int emptyPoll=0;
   struct sched_param sp;
 #ifdef DO_CPUAFFINITY
   cpu_set_t testCPU;
@@ -226,47 +225,38 @@ tirPoll()
 		 : "unknown"))), sp.sched_priority);  
 
 
-  while(1) {
+  while(1) 
+    {
 
-    // If still need Ack, don't test the Trigger Status
-    if(tirNeedAck) continue;
+      // If still need Ack, don't test the Trigger Status
+      if(tirNeedAck) continue;
 
-    tirdata = 0;
+      tirdata = 0;
 	  
-    tirdata = tirIntPoll();
-    if(tirdata == ERROR) 
-      {
-	printf("%s: ERROR: tirIntPoll returned ERROR.\n",__FUNCTION__);
-	break;
-      }
+      tirdata = tirIntPoll();
+      if(tirdata == ERROR) 
+	{
+	  printf("%s: ERROR: tirIntPoll returned ERROR.\n",__FUNCTION__);
+	  break;
+	}
 
 
-    if(tirdata) 
-      {
-	INTLOCK;
+      if(tirdata) 
+	{
+	  INTLOCK;
 	
-	if (tirIntRoutine != NULL)	/* call user routine */
-	  (*tirIntRoutine) (tirIntArg);
+	  if (tirIntRoutine != NULL)	/* call user routine */
+	    (*tirIntRoutine) (tirIntArg);
 	
-	/* Write to TIR to Acknowledge Interrupt */
-	if(tirDoAck==1) 
-	  {
-	    tirIntAck();
-	  }
-	INTUNLOCK;
-	emptyPoll=0;
-      }
-    else
-      {
-	emptyPoll++;
-	if(emptyPoll%1000000==0)
-	  {
-	    printf("No triggers in %d polling loops\n",emptyPoll);
-	    printf(" tirNeedAck = %d   tirDoAck = %d\n",tirNeedAck,tirDoAck);
-	  }
-      }
+	  /* Write to TIR to Acknowledge Interrupt */
+	  if(tirDoAck==1) 
+	    {
+	      tirIntAck();
+	    }
+	  INTUNLOCK;
+	}
     
-    pthread_testcancel();
+      pthread_testcancel();
 
   }
   printf("tirPoll: Read Error: Exiting Thread\n");
@@ -706,8 +696,8 @@ tirIntAckConnect(VOIDFUNCPTR routine, unsigned int arg)
   else
     {
       printf("%s: WARN: routine undefined.\n",__FUNCTION__);
-      tirIntRoutine = NULL;
-      tirIntArg = 0;
+      tirAckRoutine = NULL;
+      tirAckArg = 0;
       return ERROR;
     }
   return OK;
