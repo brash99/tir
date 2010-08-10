@@ -29,6 +29,7 @@
 
 pthread_mutex_t tirISR_mutex=PTHREAD_MUTEX_INITIALIZER;
 
+#ifdef VXWORKS
 #define INTLOCK {				\
     if(pthread_mutex_lock(&tirISR_mutex)<0)	\
       perror("pthread_mutex_lock");		\
@@ -38,6 +39,14 @@ pthread_mutex_t tirISR_mutex=PTHREAD_MUTEX_INITIALIZER;
     if(pthread_mutex_unlock(&tirISR_mutex)<0)	\
       perror("pthread_mutex_unlock");		\
 }
+#else
+#define INTLOCK {				\
+    vmeBusLock();				\
+}
+#define INTUNLOCK {				\
+    vmeBusUnlock();				\
+}
+#endif
 
 /* Define TIR Memory structure */
 struct vme_tir {
