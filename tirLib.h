@@ -20,6 +20,8 @@
  * Description:
  *     Header file for the TJNAF VME Trigger Interface Library
  *
+ * SVN: $Rev$
+ *
  *----------------------------------------------------------------------------*/
 
 #ifndef __TIRLIB__

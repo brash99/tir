@@ -40,11 +40,12 @@ mytirISR(int arg)
 /*   tirIntOutput(0); */
 
   /* tirIntOutput(1); */
-  for(i=0;i<100;i++)
-    {
-      reg = tirReadData();
-/*       tirIntOutput(1); */
-    }
+/*   for(i=0;i<100;i++) */
+/*     { */
+/*       reg = tirReadData(); */
+/* /\*       tirIntOutput(0); *\/ */
+/* /\*       tirIntOutput(1); *\/ */
+/*     } */
 
   tirIntOutput(0);
 
@@ -59,15 +60,15 @@ main(int argc, char *argv[]) {
 
     int stat;
 
-    printf("\nJLAB Trigger Interface Tests\n");
+    printf("\nJLAB Trigger Interface Tests (0x%x)\n",SSWAP(0x1234));
     printf("----------------------------\n");
 
     vmeOpenDefaultWindows();
     vmeDisableBERRIrq();
 
-/*     gefVmeSetDebugFlags(vmeHdl,0); */
+/*     gefVmeSetDebugFlags(vmeHdl,0x0); */
     /* Set the TIR structure pointer */
-    tirIntInit((unsigned int)(TIR_DEFAULT_ADDR),TIR_EXT_INT,1);
+    tirIntInit((unsigned int)(TIR_DEFAULT_ADDR),TIR_EXT_POLL,1);
 
     stat = tirIntConnect(TIR_INT_VEC, mytirISR, 0);
     if (stat != OK) {

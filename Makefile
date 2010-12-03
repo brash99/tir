@@ -5,9 +5,7 @@
 # Description:
 #    Makefile for the TIR Library using a VME Controller running Linux
 #
-#
-# $Date$
-# $Rev$
+# SVN: $Rev$
 #
 # Uncomment DEBUG line, to include some debugging info ( -g and -Wall)
 export DEBUG=1

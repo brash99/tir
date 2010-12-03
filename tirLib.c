@@ -21,6 +21,8 @@
  *     Primitive trigger control for VME CPUs using the TJNAF Trigger
  *     Supervisor interface card
  *
+ * SVN: $Rev$
+ *
  *----------------------------------------------------------------------------*/
 
 #define _GNU_SOURCE
@@ -212,7 +214,6 @@ tirPoll()
   printf("tirPoll: CPUset = %d\n",testCPU);
 #endif
 
-  /* policy=SCHED_OTHER; */
   policy=SCHED_FIFO;
   sp.sched_priority=40;
   printf("tirPoll: Entering polling loop...\n");
