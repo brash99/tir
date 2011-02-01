@@ -780,6 +780,72 @@ tirIntType()
   return(tt);
 }
 
+int
+tirIntTrigData(unsigned int *itype, unsigned int *isyncFlag, unsigned int *ilateFail)
+{
+  unsigned short reg;
+  if(tirPtr == NULL) {
+    logMsg("tirIntType: ERROR: TIR not initialized\n",0,0,0,0,0,0);
+    return(ERROR);
+  }
+
+  TLOCK;
+  reg = tirRead(&tirPtr->tir_dat);
+
+  if((tirIntMode == TIR_EXT_POLL)||(tirIntMode == TIR_EXT_INT)) {
+    if(tirVersion == 1)
+      *itype = (reg&0x3f);
+    else
+      *itype = (reg&0xfff);
+
+    *isyncFlag   = 0;
+    *ilateFail   = 0;
+    tirSyncFlag = 0;
+    tirLateFail = 0;
+
+  } else if((tirIntMode == TIR_TS_POLL)||(tirIntMode == TIR_TS_INT)) {
+    if(tirVersion == 1)
+      *itype = ((reg&0x3c)>>2);
+    else
+      *itype = ((reg&0xfc)>>2);
+
+    *isyncFlag   = reg&TIR_SYNC_FLAG;
+    *ilateFail   = (reg&TIR_LATE_FAIL)>>1;
+    tirSyncFlag = reg&TIR_SYNC_FLAG;
+    tirLateFail = (reg&TIR_LATE_FAIL)>>1;
+  }
+  TUNLOCK;
+
+  return OK;
+}
+
+int
+tirDecodeTrigData(unsigned int idata, unsigned int *itype, 
+		  unsigned int *isyncFlag, unsigned int *ilateFail)
+{
+
+  if((tirIntMode == TIR_EXT_POLL)||(tirIntMode == TIR_EXT_INT)) {
+    if(tirVersion == 1)
+      *itype = (idata&0x3f);
+    else
+      *itype = (idata&0xfff);
+
+    *isyncFlag   = 0;
+    *ilateFail   = 0;
+
+  } else if((tirIntMode == TIR_TS_POLL)||(tirIntMode == TIR_TS_INT)) {
+    if(tirVersion == 1)
+      *itype = ((idata&0x3c)>>2);
+    else
+      *itype = ((idata&0xfc)>>2);
+
+    *isyncFlag   = idata&TIR_SYNC_FLAG;
+    *ilateFail   = (idata&TIR_LATE_FAIL)>>1;
+  }
+
+  return OK;
+}
+
 int 
 tirIntPoll()
 {

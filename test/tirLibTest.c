@@ -49,7 +49,7 @@ mytirISR(int arg)
 
   tirIntOutput(0);
 
-  if(tirIntCount%1000==0)
+  if(tirIntCount%100==0)
     printf("Received %d triggers\n",tirIntCount);
 
 }
@@ -64,7 +64,6 @@ main(int argc, char *argv[]) {
     printf("----------------------------\n");
 
     vmeOpenDefaultWindows();
-    vmeDisableBERRIrq();
 
 /*     gefVmeSetDebugFlags(vmeHdl,0x0); */
     /* Set the TIR structure pointer */

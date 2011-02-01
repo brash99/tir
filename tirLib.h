@@ -85,8 +85,11 @@ struct vme_tir {
 #define TIR_INT_PENDING    0x4000
 #define TIR_TRIG_STATUS    0x8000
 /* dat - Data register bits */
+#define TIR_SYNC_FLAG         0x1
+#define TIR_LATE_FAIL         0x2
 #define TIR_TEST_INTERRUPT 0x4000
 #define TIR_ACK_TRIGGER    0x8000
+
 
 /* Define default Interrupt vector and address for possible sources */
 #define TIR_DEFAULT_ADDR 0x0ed0
@@ -105,6 +108,8 @@ void   tirIntAck();
 void   tirIntPause();
 void   tirIntResume();
 unsigned int tirIntType();
+int    tirIntTrigData(unsigned int *type, unsigned int *syncFlag, unsigned int *lateFail);
+int    tirDecodeTrigData(unsigned int data, unsigned int *type, unsigned int *syncFlag, unsigned int *lateFail);
 int    tirIntPoll();
 void tirPoll();
 void   tirIntOutput(unsigned short out);
