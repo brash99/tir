@@ -470,6 +470,7 @@ tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
   tirDoAck = 1;
 
   /* Set Vector and Level */
+  TLOCK;
   if((vector < 255)&&(vector > 64)) {
     tirIntVec = vector;
   }else{
@@ -478,7 +479,6 @@ tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
   tirIntLevel = (tirRead(&tirPtr->tir_csr)&TIR_LEVEL_MASK)>>8;
   printf("tirIntConnect: INFO: Int Vector = 0x%x  Level = %d\n",tirIntVec,tirIntLevel);
 
-  TLOCK;
   switch (tirIntMode) {
   case TIR_TS_POLL:
   case TIR_EXT_POLL:
