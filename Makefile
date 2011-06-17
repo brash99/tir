@@ -8,7 +8,7 @@
 # SVN: $Rev$
 #
 # Uncomment DEBUG line, to include some debugging info ( -g and -Wall)
-export DEBUG=1
+DEBUG=1
 #
 
 
@@ -23,10 +23,12 @@ CROSS_COMPILE		=
 CC			= $(CROSS_COMPILE)gcc
 AR                      = ar
 RANLIB                  = ranlib
-CFLAGS			= -O2 -I. -I${LINUXVME_INC} -I/usr/include \
+CFLAGS			= -I. -I${LINUXVME_INC} -I/usr/include \
 			  -L${LINUXVME_LIB} -L.
 ifdef DEBUG
 CFLAGS			+= -Wall -g
+else
+CFLAGS			+= -O2
 endif
 
 OBJS			= tirLib.o
