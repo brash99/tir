@@ -447,7 +447,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 */
 
 int 
-tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
+tirIntConnect(unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
 {
 
 #ifndef VXWORKS
@@ -568,17 +568,17 @@ tirIntDisconnect()
     break;
   case TIR_TS_POLL:
   case TIR_EXT_POLL:
-    if(tirpollthread) {
-      if(pthread_cancel(tirpollthread)<0) 
-	perror("pthread_cancel");
-      if(pthread_join(tirpollthread,&res)<0)
-	perror("pthread_join");
-      if (res == PTHREAD_CANCELED)
-	printf("%s: Polling thread canceled\n",__FUNCTION__);
-      else
-	printf("%s: ERROR: Polling thread NOT canceled\n",__FUNCTION__);
-
-    }
+    if(tirpollthread) 
+      {
+	if(pthread_cancel(tirpollthread)<0) 
+	  perror("pthread_cancel");
+	if(pthread_join(tirpollthread,&res)<0)
+	  perror("pthread_join");
+	if (res == PTHREAD_CANCELED)
+	  printf("%s: Polling thread canceled\n",__FUNCTION__);
+	else
+	  printf("%s: ERROR: Polling thread NOT canceled\n",__FUNCTION__);
+      }
     break;
   default:
     break;
