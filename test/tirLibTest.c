@@ -49,7 +49,7 @@ mytirISR(int arg)
 
   tirIntOutput(0);
 
-  if(tirIntCount%100==0)
+  if(tirIntCount%1==0)
     printf("Received %d triggers\n",tirIntCount);
 
 }

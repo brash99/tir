@@ -8,15 +8,15 @@
 # SVN: $Rev$
 #
 # Uncomment DEBUG line, to include some debugging info ( -g and -Wall)
-DEBUG=1
+#DEBUG=1
 #
 
 
 ifndef LINUXVME_LIB
-	LINUXVME_LIB	= $CODA/extensions/linuxvme/libs
+	LINUXVME_LIB	= ${CODA}/extensions/linuxvme/libs
 endif
 ifndef LINUXVME_INC
-	LINUXVME_INC	= $CODA/extensions/linuxvme/include
+	LINUXVME_INC	= ${CODA}/extensions/linuxvme/include
 endif
 
 CROSS_COMPILE		=
@@ -35,7 +35,7 @@ OBJS			= tirLib.o
 
 LIBS			= libtir.a
 
-all: $(LIBS)
+all: $(LIBS) install
 
 libtir.a: tirLib.o
 	$(CC) -fpic -shared $(CFLAGS) -o libtir.so tirLib.c
@@ -49,6 +49,11 @@ links: libtir.a
 	ln -sf $(PWD)/libtir.a $(LINUXVME_LIB)/libtir.a
 	ln -sf $(PWD)/libtir.so $(LINUXVME_LIB)/libtir.so
 	ln -sf $(PWD)/tirLib.h $(LINUXVME_INC)/tirLib.h
+
+install: libtir.a
+	@cp -v $(PWD)/libtir.a $(LINUXVME_LIB)/libtir.a
+	@cp -v $(PWD)/libtir.so $(LINUXVME_LIB)/libtir.so
+	@cp -v $(PWD)/tirLib.h $(LINUXVME_INC)/tirLib.h
 
 %.o: %.c 
 	$(CC) $(CFLAGS) -c $<

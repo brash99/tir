@@ -45,19 +45,31 @@ pthread_mutex_t tirISR_mutex=PTHREAD_MUTEX_INITIALIZER;
 #define INTLOCK {				\
     vmeBusLock();				\
 }
+
+#define INTTRYLOCK {				\
+    int __counter=0;				\
+    while(vmeBusTryLock()!=0)			\
+      {						\
+	__counter++;				\
+	if(__counter%100000==0)						\
+	  printf("%s: counter = %d\n",__FUNCTION__,__counter);		\
+      }									\
+  }
+
 #define INTUNLOCK {				\
     vmeBusUnlock();				\
 }
 #endif
 
 /* Define TIR Memory structure */
-struct vme_tir {
-    volatile unsigned short tir_csr;
-    volatile unsigned short tir_vec;
-    volatile unsigned short tir_dat;
-    volatile unsigned short tir_oport;
-    volatile unsigned short tir_iport;
-  };
+struct vme_tir 
+{
+  volatile unsigned short tir_csr;
+  volatile unsigned short tir_vec;
+  volatile unsigned short tir_dat;
+  volatile unsigned short tir_oport;
+  volatile unsigned short tir_iport;
+};
 
 
 /* Define TIR Version IDs (readback of a reset CSR register */
@@ -99,7 +111,8 @@ struct vme_tir {
 /* Define Functions prototypes */
 BOOL   tirIntIsRunning();
 int    tirIntInit(unsigned int tAddr, unsigned int mode, int force);
-int    tirIntConnect ( unsigned int vector, VOIDFUNCPTR routine, unsigned int arg);
+int    tirDoLibraryPollingThread(int choice);
+int    tirIntConnect(unsigned int vector, VOIDFUNCPTR routine, unsigned int arg);
 void   tirIntDisconnect();
 int    tirIntEnable(int iflag);
 void   tirIntDisable();
