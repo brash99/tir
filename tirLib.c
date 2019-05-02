@@ -43,13 +43,11 @@
 #include <taskLib.h>
 #include <intLib.h>
 #include <iv.h>
-#else
-#include "jvme.h"
+#include <vxLib.h>
 #endif
 
+#include "jvme.h"
 #include "tirLib.h"
-
-extern int logMsg(const char *format, ...);
 
 
 /* Define variable for TIR board revision */
@@ -63,21 +61,22 @@ unsigned int tirNeedAck=0;
 extern  int sysBusToLocalAdrs(int, char *, char **);
 extern  int intDisconnect(int);
 extern  int sysIntEnable(int);
+IMPORT  STATUS sysIntDisable(int);
 #else
 
-int 
+int
 intLock()
 {
   return 0;
 }
 
-void 
+void
 intUnlock(int arg)
 {
   return;
 }
 
-int 
+int
 sysIntEnable(int arg)
 {
   return 0;
@@ -133,18 +132,18 @@ tirIntIsRunning()
  * SEE ALSO: tirIntConnect()
  */
 
-static void 
+static void
 tirInt (void)
 {
   tirIntCount++;
-  
+
 /*   INTLOCK; */
 
   if (tirIntRoutine != NULL)	/* call user routine */
     (*tirIntRoutine) (tirIntArg);
 
   /* Acknowledge trigger */
-  if(tirDoAck==1) 
+  if(tirDoAck==1)
     {
       tirIntAck();
     }
@@ -173,7 +172,7 @@ tirPoll()
 #ifdef DO_CPUAFFINITY
   cpu_set_t testCPU;
 
-  if (pthread_getaffinity_np(pthread_self(), sizeof(testCPU), &testCPU) <0) 
+  if (pthread_getaffinity_np(pthread_self(), sizeof(testCPU), &testCPU) <0)
     {
       perror("pthread_getaffinity_np");
     }
@@ -181,11 +180,11 @@ tirPoll()
 
   CPU_ZERO(&testCPU);
   CPU_SET(2,&testCPU); // set it to be the same as the dmaPollLib polling thread
-  if (pthread_setaffinity_np(pthread_self(),sizeof(testCPU), &testCPU) <0) 
+  if (pthread_setaffinity_np(pthread_self(),sizeof(testCPU), &testCPU) <0)
     {
       perror("pthread_setaffinity_np");
     }
-  if (pthread_getaffinity_np(pthread_self(), sizeof(testCPU), &testCPU) <0) 
+  if (pthread_getaffinity_np(pthread_self(), sizeof(testCPU), &testCPU) <0)
     {
       perror("pthread_getaffinity_np");
     }
@@ -201,44 +200,44 @@ tirPoll()
 	  (policy == SCHED_FIFO ? "FIFO"
 	   : (policy == SCHED_RR ? "RR"
 	      : (policy == SCHED_OTHER ? "OTHER"
-		 : "unknown"))), sp.sched_priority);  
+		 : "unknown"))), sp.sched_priority);
 
 
-  while(1) 
+  while(1)
     {
 
       pthread_testcancel();
 
       // If still need Ack, don't test the Trigger Status
-      if(tirNeedAck) 
+      if(tirNeedAck)
 	{
 	  continue;
 	}
 
       tirdata = 0;
-	  
+
       tirdata = tirIntPoll();
-      if(tirdata == ERROR) 
+      if(tirdata == ERROR)
 	{
 	  printf("%s: ERROR: tirIntPoll returned ERROR.\n",__FUNCTION__);
 	  break;
 	}
 
-      if(tirdata) 
+      if(tirdata)
 	{
 	  INTLOCK;
-	
+
 	  if (tirIntRoutine != NULL)	/* call user routine */
 	    (*tirIntRoutine) (tirIntArg);
-	
+
 	  /* Write to TIR to Acknowledge Interrupt */
-	  if(tirDoAck==1) 
+	  if(tirDoAck==1)
 	    {
 	      tirIntAck();
 	    }
 	  INTUNLOCK;
 	}
-    
+
     }
   printf("tirPoll: Read Error: Exiting Thread\n");
   pthread_exit(0);
@@ -247,35 +246,35 @@ tirPoll()
 void
 startTirPollThread()
 {
-  int ptir_status;							
+  int ptir_status;
 #ifdef DO_CPUAFFINITY
-  cpu_set_t pollCPU;							
+  cpu_set_t pollCPU;
 #endif
-  
-  ptir_status = pthread_create(&tirpollthread,			
-			       NULL,					
+
+  ptir_status = pthread_create(&tirpollthread,
+			       NULL,
 			       (void*(*)(void *)) tirPoll,
 			       (void *)NULL);
-  if(ptir_status!=0) 
+  if(ptir_status!=0)
     {
-      printf("Error: TIR Polling Thread could not be started.\n");	
-      printf("\t ... returned: %d\n",ptir_status);			
+      printf("Error: TIR Polling Thread could not be started.\n");
+      printf("\t ... returned: %d\n",ptir_status);
     }
 
 #ifdef DO_CPUAFFINITY
   CPU_ZERO(&pollCPU);
   CPU_SET(2,&pollCPU);
-  if (pthread_setaffinity_np(tirpollthread,sizeof(pollCPU), &pollCPU) <0) 
-    { 
-      perror("pthread_setaffinity_np");					
-    }									
-  if (pthread_getaffinity_np(tirpollthread, sizeof(pollCPU), &pollCPU) <0) 
-    { 
-      perror("pthread_getaffinity_np");					
-    }									
-  printf("startTirPollThread: CPUset = %d\n",pollCPU);			
+  if (pthread_setaffinity_np(tirpollthread,sizeof(pollCPU), &pollCPU) <0)
+    {
+      perror("pthread_setaffinity_np");
+    }
+  if (pthread_getaffinity_np(tirpollthread, sizeof(pollCPU), &pollCPU) <0)
+    {
+      perror("pthread_getaffinity_np");
+    }
+  printf("startTirPollThread: CPUset = %d\n",pollCPU);
 #endif
- 
+
 }
 
 /* Example User routines */
@@ -300,27 +299,27 @@ tirPollUser(int arg)
 
   printf("tirPollUser: Entering polling loop...\n");
 
-  while(1) 
+  while(1)
     {
-      
+
       tirdata = 0;
       tirdata = tirIntPoll();
       if(tirdata == ERROR) break;
-      
-      if(tirdata) 
+
+      if(tirdata)
 	{
-	  
+
 	  trigType = tirIntType();
-	  
+
 	  /* Strobe output Register */
 	  tirIntOutput(1);
 	  tirIntOutput(0);
-	  
+
 	  /* Write to TIR to Acknowledge Interrupt */
 	  tirIntAck();
-	  
+
 	}
-      
+
     }
   printf("tirPollUser: Read Error: Exiting Loop\n");
 }
@@ -334,31 +333,31 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
   unsigned short rval;
   int stat;
 
-  if (tAddr == 0) 
+  if (tAddr == 0)
     {
       tAddr = TIR_DEFAULT_ADDR;
     }
 
   tirIntCount = 0;
   tirDoAck = 1;
-  
+
 #ifdef VXWORKS
   stat = sysBusToLocalAdrs(0x29,(char *)tAddr,(char **)&laddr);
-  if (stat != 0) 
+  if (stat != 0)
     {
       printf("tirInit: ERROR: Error in sysBusToLocalAdrs res=%d \n",stat);
-    } 
-  else 
+    }
+  else
     {
-      printf("TIR address = 0x%x\n",laddr);
+      printf("TIR address = 0x%lx\n",laddr);
     }
 #else
   stat = vmeBusToLocalAdrs(0x29,(char *)tAddr,(char **)&laddr);
-  if (stat != 0) 
+  if (stat != 0)
     {
       printf("tirInit: ERROR: Error in vmeBusToLocalAdrs res=%d \n",stat);
-    } 
-  else 
+    }
+  else
     {
       printf("TIR VME (USER) address = 0x%.8x (0x%lx)\n",tAddr,laddr);
     }
@@ -370,7 +369,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 #else
   stat = vmeMemProbe((char *)laddr,2,(char *)&rval);
 #endif
-  if (stat != 0) 
+  if (stat != 0)
     {
       printf("tirInit: ERROR: TIR card not addressable\n");
       return(-1);
@@ -378,7 +377,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 
   if(force == 0)  /* Check if the TIR is active */
     {
-      if(rval&TIR_ENABLED) 
+      if(rval&TIR_ENABLED)
 	{
 	  printf("WARN: TIR is currently enabled (set the Force Reset Flag to override)\n");
 	  return(-1);
@@ -391,11 +390,11 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
   tirIntRunning = 0;
   vmeWrite16(&tirPtr->tir_csr,0x80); /* Reset the board */
   rval = vmeRead16(&tirPtr->tir_csr)&TIR_VERSION_MASK;
-  if(rval == TIR_VERSION_1) 
+  if(rval == TIR_VERSION_1)
     {
       tirVersion = 1;
     }
-  else if(rval == TIR_VERSION_2) 
+  else if(rval == TIR_VERSION_2)
     {
       tirVersion = 2;
     }
@@ -408,7 +407,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 
 
   /* Check on Mode of operations */
-  if(mode > 3) 
+  if(mode > 3)
     {
       printf("tirInit: WARN: Invalid mode id (%d) - Default to External Interrupts\n",mode);
       tirIntMode = TIR_EXT_INT;
@@ -416,7 +415,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
   else
     {
       tirIntMode = mode;
-      switch(tirIntMode) 
+      switch(tirIntMode)
 	{
 	case TIR_EXT_INT:
 	  printf("TIR (version %d) setup for External Interrupts\n",tirVersion);
@@ -429,13 +428,13 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
 	  break;
 	case TIR_TS_POLL:
 	  printf("TIR (version %d) setup for TS polling\n",tirVersion);
-	
+
 	}
     }
-  
-  
+
+
   return(tirVersion);
-  
+
 }
 
 /*******************************************************************************
@@ -445,7 +444,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
  *
  *   choice:   0 - No Thread Polling
  *             1 - Library Thread Polling (started with tirIntEnable)
- * 
+ *
  *
  * RETURNS: OK, or ERROR .
  */
@@ -457,7 +456,7 @@ tirDoLibraryPollingThread(int choice)
     tirDoIntPolling=1;
   else
     tirDoIntPolling=0;
-      
+
   return tirDoIntPolling;
 }
 
@@ -472,7 +471,7 @@ tirDoLibraryPollingThread(int choice)
  * RETURNS: OK, or ERROR .
  */
 
-int 
+int
 tirIntConnect(unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
 {
 
@@ -480,7 +479,7 @@ tirIntConnect(unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
   int status;
 #endif
 
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       printf("tirIntConnect: ERROR: TIR not initialized\n");
       return(ERROR);
@@ -498,7 +497,7 @@ tirIntConnect(unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
 
   /* Set Vector and Level */
   TLOCK;
-  if((vector < 255)&&(vector > 64)) 
+  if((vector < 255)&&(vector > 64))
     {
       tirIntVec = vector;
     }
@@ -509,18 +508,18 @@ tirIntConnect(unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
   tirIntLevel = (vmeRead16(&tirPtr->tir_csr)&TIR_LEVEL_MASK)>>8;
   printf("tirIntConnect: INFO: Int Vector = 0x%x  Level = %d\n",tirIntVec,tirIntLevel);
 
-  switch (tirIntMode) 
+  switch (tirIntMode)
     {
     case TIR_TS_POLL:
     case TIR_EXT_POLL:
-      
+
       vmeWrite16(&tirPtr->tir_csr,0x80);
       vmeWrite16(&tirPtr->tir_vec,tirIntVec);
-      
+
       break;
     case TIR_TS_INT:
     case TIR_EXT_INT:
-      
+
       vmeWrite16(&tirPtr->tir_csr,0x80);
       vmeWrite16(&tirPtr->tir_vec,tirIntVec);
 #ifdef VXWORKS
@@ -528,14 +527,14 @@ tirIntConnect(unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
 #else
       status = vmeIntConnect (tirIntVec, tirIntLevel,
 			      tirInt,arg);
-      if (status != OK) 
+      if (status != OK)
 	{
 	  printf("vmeIntConnect failed\n");
 	  TUNLOCK;
 	  return(ERROR);
 	}
-#endif  
-      
+#endif
+
       break;
 
     default:
@@ -544,7 +543,7 @@ tirIntConnect(unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
       return(ERROR);
     }
 
-  if(routine) 
+  if(routine)
     {
       tirIntRoutine = routine;
       tirIntArg = arg;
@@ -554,13 +553,13 @@ tirIntConnect(unsigned int vector, VOIDFUNCPTR routine, unsigned int arg)
       tirIntRoutine = NULL;
       tirIntArg = 0;
     }
-  
+
   TUNLOCK;
   return(OK);
 }
 
 
-void 
+void
 tirIntDisconnect()
 {
 #ifndef VXWORKS
@@ -568,30 +567,30 @@ tirIntDisconnect()
 #endif
   void *res;
 
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       printf("tirIntDisconnect: ERROR: TIR not initialized\n");
       return;
     }
 
-  if(tirIntRunning) 
+  if(tirIntRunning)
     {
       printf("tirIntDisconnect: ERROR: TIR is Enabled - Call tirIntDisable() first\n");
       return;
     }
 
   INTLOCK;
-  
+
   /* Reset TIR */
   TLOCK;
   vmeWrite16(&tirPtr->tir_csr,0x80);
   TUNLOCK;
 
-  switch (tirIntMode) 
+  switch (tirIntMode)
     {
     case TIR_TS_INT:
     case TIR_EXT_INT:
-      
+
 #ifdef VXWORKS
       /* Disconnect any current interrupts */
       sysIntDisable(tirIntLevel);
@@ -599,7 +598,7 @@ tirIntDisconnect()
 	printf("tirIntConnect: Error disconnecting Interrupt\n");
 #else
       status = vmeIntDisconnect(tirIntLevel);
-      if (status != OK) 
+      if (status != OK)
 	{
 	  printf("vmeIntDisconnect failed\n");
 	}
@@ -609,9 +608,9 @@ tirIntDisconnect()
     case TIR_EXT_POLL:
       if(tirDoIntPolling)
 	{
-	  if(tirpollthread) 
+	  if(tirpollthread)
 	    {
-	      if(pthread_cancel(tirpollthread)<0) 
+	      if(pthread_cancel(tirpollthread)<0)
 		perror("pthread_cancel");
 	      if(pthread_join(tirpollthread,&res)<0)
 		perror("pthread_join");
@@ -625,11 +624,11 @@ tirIntDisconnect()
     default:
       break;
     }
-  
+
   INTUNLOCK;
-  
+
   printf("tirIntDisconnect: Disconnected\n");
-  
+
   return;
 }
 
@@ -641,7 +640,7 @@ tirIntEnable(int iflag)
 {
   int lock_key=0;
 
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       printf("tirIntEnable: ERROR: TIR not initialized\n");
       return(-1);
@@ -655,7 +654,7 @@ tirIntEnable(int iflag)
   tirDoAck      = 1;
   tirNeedAck    = 0;
 
-  switch (tirIntMode) 
+  switch (tirIntMode)
     {
     case TIR_TS_POLL:
 
@@ -702,11 +701,11 @@ tirIntEnable(int iflag)
 
 }
 
-void 
+void
 tirIntDisable()
 {
 
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       printf("tirIntDisable: ERROR: TIR not initialized\n");
       return;
@@ -718,10 +717,10 @@ tirIntDisable()
   TUNLOCK;
 }
 
-void 
+void
 tirIntReset()
 {
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       printf("tirIntReset: ERROR: TIR not initialized\n");
       return;
@@ -752,10 +751,10 @@ tirIntAckConnect(VOIDFUNCPTR routine, unsigned int arg)
   return OK;
 }
 
-void 
+void
 tirIntAck()
 {
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       logMsg("tirIntAck: ERROR: TIR not initialized\n",0,0,0,0,0,0);
       return;
@@ -797,7 +796,7 @@ tirIntType()
   unsigned short reg;
   unsigned int tt=0;
 
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       logMsg("tirIntType: ERROR: TIR not initialized\n",0,0,0,0,0,0);
       return(0);
@@ -807,7 +806,7 @@ tirIntType()
   reg = vmeRead16(&tirPtr->tir_dat);
   TUNLOCK;
 
-  if((tirIntMode == TIR_EXT_POLL)||(tirIntMode == TIR_EXT_INT)) 
+  if((tirIntMode == TIR_EXT_POLL)||(tirIntMode == TIR_EXT_INT))
     {
       if(tirVersion == 1)
 	tt = (reg&0x3f);
@@ -817,8 +816,8 @@ tirIntType()
       tirSyncFlag = 0;
       tirLateFail = 0;
 
-    } 
-  else if((tirIntMode == TIR_TS_POLL)||(tirIntMode == TIR_TS_INT)) 
+    }
+  else if((tirIntMode == TIR_TS_POLL)||(tirIntMode == TIR_TS_INT))
     {
       if(tirVersion == 1)
 	tt = ((reg&0x3c)>>2);
@@ -837,7 +836,7 @@ int
 tirIntTrigData(unsigned int *itype, unsigned int *isyncFlag, unsigned int *ilateFail)
 {
   unsigned short reg;
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       logMsg("tirIntType: ERROR: TIR not initialized\n",0,0,0,0,0,0);
       return(ERROR);
@@ -846,7 +845,7 @@ tirIntTrigData(unsigned int *itype, unsigned int *isyncFlag, unsigned int *ilate
   TLOCK;
   reg = vmeRead16(&tirPtr->tir_dat);
 
-  if((tirIntMode == TIR_EXT_POLL)||(tirIntMode == TIR_EXT_INT)) 
+  if((tirIntMode == TIR_EXT_POLL)||(tirIntMode == TIR_EXT_INT))
     {
       if(tirVersion == 1)
 	*itype = (reg&0x3f);
@@ -858,8 +857,8 @@ tirIntTrigData(unsigned int *itype, unsigned int *isyncFlag, unsigned int *ilate
       tirSyncFlag = 0;
       tirLateFail = 0;
 
-    } 
-  else if((tirIntMode == TIR_TS_POLL)||(tirIntMode == TIR_TS_INT)) 
+    }
+  else if((tirIntMode == TIR_TS_POLL)||(tirIntMode == TIR_TS_INT))
     {
       if(tirVersion == 1)
 	*itype = ((reg&0x3c)>>2);
@@ -877,11 +876,11 @@ tirIntTrigData(unsigned int *itype, unsigned int *isyncFlag, unsigned int *ilate
 }
 
 int
-tirDecodeTrigData(unsigned int idata, unsigned int *itype, 
+tirDecodeTrigData(unsigned int idata, unsigned int *itype,
 		  unsigned int *isyncFlag, unsigned int *ilateFail)
 {
 
-  if((tirIntMode == TIR_EXT_POLL)||(tirIntMode == TIR_EXT_INT)) 
+  if((tirIntMode == TIR_EXT_POLL)||(tirIntMode == TIR_EXT_INT))
     {
       if(tirVersion == 1)
 	*itype = (idata&0x3f);
@@ -891,8 +890,8 @@ tirDecodeTrigData(unsigned int idata, unsigned int *itype,
       *isyncFlag   = 0;
       *ilateFail   = 0;
 
-    } 
-  else if((tirIntMode == TIR_TS_POLL)||(tirIntMode == TIR_TS_INT)) 
+    }
+  else if((tirIntMode == TIR_TS_POLL)||(tirIntMode == TIR_TS_INT))
     {
       if(tirVersion == 1)
 	*itype = ((idata&0x3c)>>2);
@@ -906,20 +905,20 @@ tirDecodeTrigData(unsigned int idata, unsigned int *itype,
   return OK;
 }
 
-int 
+int
 tirIntPoll()
 {
   unsigned short sval=0;
 
   TLOCK;
   sval = vmeRead16(&tirPtr->tir_csr);
-  if( (sval != 0xffff) && ((sval&0x8000) != 0) ) 
+  if( (sval != 0xffff) && ((sval&0x8000) != 0) )
     {
       tirIntCount++;
       TUNLOCK;
       return (1);
-    } 
-  else 
+    }
+  else
     {
       TUNLOCK;
       return (0);
@@ -930,7 +929,7 @@ tirIntPoll()
 void
 tirIntOutput(unsigned short out)
 {
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       logMsg("tirIntOutput: ERROR: TIR not initialized\n",0,0,0,0,0,0);
       return;
@@ -1030,7 +1029,7 @@ tirIntStatus(int pflag)
   unsigned short csr, ivec, data, out, inp;
   int enabled, int_level, ext, test, latch, int_pending, int_mode;
 
-  if(tirPtr == NULL) 
+  if(tirPtr == NULL)
     {
       printf("tirIntStatus: ERROR: TIR not initialized\n");
       return -1;
@@ -1052,11 +1051,11 @@ tirIntStatus(int pflag)
   test        = csr&TIR_TEST_MODE;
   latch       = csr&TIR_TRIG_STATUS;
   int_pending = csr&TIR_INT_PENDING;
-  
-  if(pflag == 1) 
+
+  if(pflag == 1)
     {
       /* print out status info */
-    
+
       printf("STATUS for TIR at base address 0x%lx \n",(unsigned long) tirPtr);
       printf("----------------------------------------- \n");
       printf("Trigger Count: %d\n",tirIntCount);
@@ -1069,20 +1068,20 @@ tirIntStatus(int pflag)
       printf("\n");
       if(test)
 	printf("Test Mode Enabled\n");
-    
-      if(enabled) 
+
+      if(enabled)
 	{
 	  if(latch)
 	    printf("State     : Enabled (trigger latched!)\n");
 	  else
 	    printf("State     : Enabled\n");
-      
+
 	  if(ext)
 	    printf("Source    : External\n");
 	  else
 	    printf("Source    : TS\n");
-      
-	  if(int_mode) 
+
+	  if(int_mode)
 	    {
 	      if(int_pending)
 		printf("Interrupts: Enabled (pending)\n");
