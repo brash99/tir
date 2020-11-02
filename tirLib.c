@@ -281,10 +281,9 @@ startTirPollThread()
 void
 tirIntUser(int arg)
 {
-  unsigned short tirdata;
 
   vmeWrite16(&tirPtr->tir_oport,0x0001);
-  tirdata = vmeRead16(&tirPtr->tir_oport);
+  vmeRead16(&tirPtr->tir_oport);
   vmeWrite16(&tirPtr->tir_oport, 0x0000);
 
   return;
@@ -294,8 +293,6 @@ void
 tirPollUser(int arg)
 {
   int tirdata;
-  unsigned int trigType=0;
-
 
   printf("tirPollUser: Entering polling loop...\n");
 
@@ -308,8 +305,6 @@ tirPollUser(int arg)
 
       if(tirdata)
 	{
-
-	  trigType = tirIntType();
 
 	  /* Strobe output Register */
 	  tirIntOutput(1);
@@ -352,7 +347,7 @@ tirIntInit(unsigned int tAddr, unsigned int mode, int force)
       printf("TIR address = 0x%lx\n",laddr);
     }
 #else
-  stat = vmeBusToLocalAdrs(0x29,(char *)tAddr,(char **)&laddr);
+  stat = vmeBusToLocalAdrs(0x29,(char *)(unsigned long)tAddr,(char **)&laddr);
   if (stat != 0)
     {
       printf("tirInit: ERROR: Error in vmeBusToLocalAdrs res=%d \n",stat);
@@ -579,7 +574,7 @@ tirIntDisconnect()
       return;
     }
 
-  INTLOCK;
+  /* INTLOCK; */
 
   /* Reset TIR */
   TLOCK;
@@ -625,7 +620,7 @@ tirIntDisconnect()
       break;
     }
 
-  INTUNLOCK;
+  /* INTUNLOCK; */
 
   printf("tirIntDisconnect: Disconnected\n");
 
