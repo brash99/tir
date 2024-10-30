@@ -3,77 +3,95 @@
 #    Makefile
 #
 # Description:
-#    Makefile for the coda primary and secondary readout lists 
+#    Makefile for the coda primary and secondary readout lists
 #    running on an Intel-based controller running Linux
 #
 #
-# $Date$
-# $Rev$
-#
 # Uncomment DEBUG line for debugging info ( -g and -Wall )
-#export DEBUG=1
+DEBUG=1
+QUIET=1
 #
-
-# Plug in your primary readout lists here..
-VMEROL			= vme_list.so
-# Add shared library dependencies here.  (jvme, tir, tsUtil are already included)
-ROLLIBS			= 
-
-ifndef LINUXVME_LIB
-	LINUXVME_LIB	= ${CODA}/extensions/linuxvme/libs
+ifeq ($(QUIET),1)
+        Q = @
+else
+        Q =
 endif
-ifndef LINUXVME_INC
-	LINUXVME_INC	= ${CODA}/extensions/linuxvme/include
+
+# Plug in your primary readout lists here.. CRL are found automatically
+ROLSRC			= vme_list.c
+VMEROL			= $(ROLSRC:.c=.so)
+# Add shared library dependencies here.  (jvme, ti, are already included)
+ROLLIBS			=
+
+ifdef CODA_VME
+INC_CODA_VME	= -isystem${CODA_VME}/include
 endif
+
+ifdef CODA_VME_LIB
+LIB_CODA_VME	= -L${CODA_VME_LIB}
+endif
+
+LINUXVME_LIB	?= .
+LINUXVME_INC	?= .
 
 # DEFs for compiling primary readout lists
 CC			= gcc
 AR                      = ar
 RANLIB                  = ranlib
-CFLAGS			= -O2 -w -I${LINUXVME_INC} -I. -I/usr/include -I${CODA}/common/include\
-			  -L${LINUXVME_LIB} -L. -DJLAB
-CFLAGS			+= -ljvme -ltir $(ROLLIBS)
-CFLAGS			+= -DLINUX -DDAYTIME=\""`date`"\"
 ifdef DEBUG
-CFLAGS			+= -Wall -g
+CFLAGS			= -Wall -Wno-unused -g
+else
+CFLAGS			= -O3 -w
 endif
+CFLAGS			+= -DLINUX -DDAYTIME=\""`date`"\"
+
+INCS			= -I. -I${LINUXVME_INC} ${INC_CODA_VME} \
+				-isystem${CODA}/common/include
+LIBS			= -L. -L${LINUXVME_LIB} ${LIB_CODA_VME} -DJLAB \
+				-lrt -lpthread -lstdc++ -ljvme -ltir $(ROLLIBS)
 
 # DEFs for compiling CODA readout lists
 CCRL			= ${CODA_BIN}/ccrl
-CODA_INCS		= -I.  -I${LINUXVME_INC} -I${CODA}/common/include
-CODA_LIBDIRS            = -L. -L${LINUXVME_LIB}
-CODA_LIBS		= -ljvme -ltir 
+CODA_INCS		= -I. -I${LINUXVME_INC} ${INC_CODA_VME} -isystem${CODA}/common/include
+CODA_LIBDIRS            = -L.
+CODA_LIBS		=
 CODA_DEFS		= -DLINUX -DDAYTIME=\""`date`"\"
-CODA_CFLAGS		= -O -w -fpic -shared ${CODA_INCS} ${CODA_LIBDIRS} \
-			  ${CODA_LIBS} ${CODA_DEFS}
 ifdef DEBUG
-CODA_CFLAGS		+= -Wall -g
+CODA_CFLAGS		= -Wall -Wno-unused -g
+else
+CODA_CFLAGS		= -O -w
 endif
+CODA_CFLAGS		+= -fpic -shared ${CODA_INCS} ${CODA_LIBDIRS} \
+			  ${CODA_LIBS} ${CODA_DEFS}
+
 CRLFILES		= $(wildcard *.crl)
 CFILES			= $(CRLFILES:.crl=.c)
 SOBJS			= $(CRLFILES:.crl=.so)
 
+DEPDIR			:= .deps
+DEPFLAGS		= -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
+DEPFILES		:= $(VMEROL:%.so=$(DEPDIR)/%.d)
 
-all: $(VMEROL) $(SOBJS) 
 
-event_list.c: event_list.crl Makefile
-	@echo
-	@echo "Converting $< to $@"
-	@${CCRL} $<
 
-event_list.so: event_list.c
-	@echo
-	@echo "Building $@ from $<"
-	@echo
-	${CC} ${CODA_CFLAGS} -o $@ $<
+all:  $(VMEROL) $(SOBJS)
 
-%.so: %.c Makefile
-	@echo
-	@echo "Building $@ from $<"
-	@echo
-	$(CC) -fpic -shared  $(CFLAGS) -DINIT_NAME=$(@:.so=__init) -o $@ $<
+%.c: %.crl
+	@echo " CCRL   $@"
+	${Q}${CCRL} $<
+
+%.so: %.c
+%.so: %.c $(DEPDIR)/%.d | $(DEPDIR)
+	@echo " CC     $@"
+	${Q}$(CC) -fpic -shared  $(DEPFLAGS) $(CFLAGS) $(INCS) $(LIBS) \
+		-DINIT_NAME=$(@:.so=__init) -DINIT_NAME_POLL=$(@:.so=__poll) -o $@ $<
 
 clean distclean:
-	@rm -f  $(VMEROL) $(SOBJS) $(CFILES) *~ 
+	${Q}rm -f  $(VMEROL) $(SOBJS) $(CFILES) *~ $(DEPFILES)
+
+$(DEPDIR): ; @mkdir -p $@
+
+$(DEPFILES):
+include $(wildcard $(DEPFILES))
 
 .PHONY: all

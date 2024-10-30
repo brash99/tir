@@ -1,7 +1,7 @@
 /*************************************************************************
  *
- *  vme_list.c - Library of routines for readout and buffering of 
- *                events using a JLAB Trigger Interface (TI) with 
+ *  vme_list.c - Library of routines for readout and buffering of
+ *                events using a JLAB Trigger Interface (TI) with
  *                a Linux VME controller.
  *
  */
@@ -22,21 +22,21 @@
 #include "linuxvme_list.c" /* source required for CODA */
 
 /* function prototype */
-void rocTrigger(int arg);
+void rocTrigger(int arg, int EVTYPE, int EVNUM);
 
 void
 rocDownload()
 {
 
   /* Setup Address and data modes for DMA transfers
-   *   
+   *
    *  vmeDmaConfig(addrType, dataType, sstMode);
    *
    *  addrType = 0 (A16)    1 (A24)    2 (A32)
    *  dataType = 0 (D16)    1 (D32)    2 (BLK32) 3 (MBLK) 4 (2eVME) 5 (2eSST)
    *  sstMode  = 0 (SST160) 1 (SST267) 2 (SST320)
    */
-  vmeDmaConfig(2,5,1); 
+  vmeDmaConfig(2,5,1);
 
   printf("rocDownload: User Download Executed\n");
 
@@ -67,29 +67,25 @@ rocEnd()
 {
 
   printf("rocEnd: Ended after %d events\n",tirGetIntCount());
-  
+
 }
 
 void
-rocTrigger(int arg)
+rocTrigger(int arg, int EVTYPE, int EVNUM)
 {
   int ii;
-  unsigned int event_ty=0, event_no=0;
-
-  event_ty = EVTYPE;
-  event_no = EVNUM;
 
   /* Open an event bank of banks with event type EVTYPE (obtained from TI) */
-  EVENTOPEN(event_ty, BT_BANK);
+  EVENTOPEN(ROCID, BT_BANK, blockLevel);
 
-  /* Example: Raise the 0th (1<<0) and 2nd (1<<2) output level on the TI */
-  tirIntOutput(1<<0 | 1<<2);
+  /* Insert Trigger Bank, 0xFF10 : raw trigger, no timestamps */
+  InsertDummyTriggerBank(0xFF10, EVNUM, EVTYPE, blockLevel);
 
   /* Open Bank number 5 (for example), Bank of 32bit unsigned integers */
   BANKOPEN(5,BT_UI4,0);
   /* Insert some data here - Make sure bytes are ordered little-endian (LSWAP)*/
   *dma_dabufp++ = LSWAP(0xda000022);
-  for(ii=0; ii<20; ii++) 
+  for(ii=0; ii<20; ii++)
     {
       *dma_dabufp++ = LSWAP(ii);
     }
@@ -98,8 +94,6 @@ rocTrigger(int arg)
   BANKCLOSE;
 
   EVENTCLOSE;
-  /* Drop all output levels on the TI */
-  tirIntOutput(0);
 
 }
 
