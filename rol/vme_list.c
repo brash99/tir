@@ -71,12 +71,9 @@ rocEnd()
 }
 
 void
-rocTrigger(int arg, int EVTYPE, int EVNUM)
+rocTrigger(int EVNUM, int EVTYPE, int syncFlag)
 {
   int ii;
-
-  /* Open an event bank of banks with event type EVTYPE (obtained from TI) */
-  EVENTOPEN(ROCID, BT_BANK, blockLevel);
 
   /* Insert Trigger Bank, 0xFF10 : raw trigger, no timestamps */
   InsertDummyTriggerBank(0xFF10, EVNUM, EVTYPE, blockLevel);
@@ -92,8 +89,6 @@ rocTrigger(int arg, int EVTYPE, int EVNUM)
   *dma_dabufp++ = LSWAP(0xda0000ff);
 
   BANKCLOSE;
-
-  EVENTCLOSE;
 
 }
 
