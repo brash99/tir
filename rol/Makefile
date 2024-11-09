@@ -9,7 +9,7 @@
 #
 # Uncomment DEBUG line for debugging info ( -g and -Wall )
 DEBUG=1
-QUIET=1
+#QUIET=1
 #
 ifeq ($(QUIET),1)
         Q = @
@@ -21,7 +21,7 @@ endif
 ROLSRC			= vme_list.c
 VMEROL			= $(ROLSRC:.c=.so)
 # Add shared library dependencies here.  (jvme, ti, are already included)
-ROLLIBS			=
+ROLLIBS			= -lc792 -lc775
 
 ifdef CODA_VME
 INC_CODA_VME	= -isystem${CODA_VME}/include

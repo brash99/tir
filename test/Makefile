@@ -6,7 +6,7 @@
 #    Makefile for the TI test programs
 #
 DEBUG	?= 1
-QUIET	?= 1
+#QUIET	?= 1
 #
 ifeq ($(QUIET),1)
         Q = @
